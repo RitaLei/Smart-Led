@@ -1,0 +1,229 @@
+// Smooth RGB mood lamp
+// Changes an RGB LED's color smoothly that only turns on 
+// when it's dark around it.
+// Author: Ricardo Ouvina
+// Date: 19/07/2012
+// Version: 2.0
+// ---------------------------------------------------
+// The brightness of the leds follows these equations:
+// Red = sin(x)
+// Green = sin(x + PI/3)
+// Blue = sin(x + 2PI/3)
+// for x from 0 to PI
+// ---------------------------------------------------
+
+#define S0 4
+#define S1 5
+#define S2 6
+#define S3 7
+#define sensorOut 8
+
+int frequencyR = 0;
+int frequencyG = 0;
+int frequencyB = 0;
+
+float RGB[3];
+int ambientLight;   // variable to store the value of the ambient light
+int ldrPin = 0;     // LDR in Analog Input 0 to read the ambient light
+int redPin = 3; // another LED
+int greenPin = 12; // another LED
+int bluePin = 13; // another LED
+
+int redLed   = 11;  // red LED in Digital Pin 11 (PWM)
+int greenLed = 10;  // green LED in Digital Pin 10 (PWM)
+int blueLed  = 9;   // blue LED in Digital Pin 9 (PWM)
+
+void setup(){
+ 
+  pinMode(redLed,OUTPUT);  // tell arduino it's an output
+  pinMode(greenLed,OUTPUT);// tell arduino it's an output
+  pinMode(blueLed,OUTPUT); // tell arduino it's an output
+
+  pinMode(redPin,OUTPUT);  // tell arduino it's an output
+  pinMode(greenPin,OUTPUT);// tell arduino it's an output
+  pinMode(bluePin,OUTPUT); // tell arduino it's an output
+
+// Color sensor code
+  pinMode(S0, OUTPUT);
+  pinMode(S1, OUTPUT);
+  pinMode(S2, OUTPUT);
+  pinMode(S3, OUTPUT);
+  pinMode(sensorOut, INPUT);
+  
+  // Setting frequency-scaling to 20%
+  digitalWrite(S0,HIGH);
+  digitalWrite(S1,LOW);
+  
+  Serial.begin(9600);
+  
+}
+
+void loop(){
+//setColor(255, 0, 0); // Red Color
+//  delay(1000);
+//  setColor(0, 255, 0); // Green Color
+//  delay(1000);
+//  setColor(0, 0, 255); // Blue Color
+//  delay(1000);
+//  setColor(255, 255, 255); // White Color
+//  delay(1000);
+//  setColor(170, 0, 255); // Purple Color
+//  delay(1000);
+
+//void setColor(int redValue, int greenValue, int blueValue) {
+//  analogWrite(redLed, redValue);
+//  analogWrite(greenLed, greenValue);
+//  analogWrite(blueLed, blueValue);
+
+// use ldr to turn on and off led
+for (float x=0;x<PI;x=x+0.00001){
+    RGB[0]=255*abs(sin(x*(180/PI)));           // calculate the brightness for the red led
+    RGB[1]=255*abs(sin((x+PI/3)*(180/PI)));    // calculate the brightness for the green led
+    RGB[2]=255*abs(sin((x+(2*PI)/3)*(180/PI)));// calculate the brightness for the blue led
+    ambientLight=analogRead(ldrPin); // read an store the ambient light
+    if(ambientLight>600 && ambientLight<1000){ // start only if the ambient light is very low and end when the ambient light is very high
+ Serial.println(ambientLight);
+      
+      //  write the brightness on the leds
+      analogWrite(redPin,RGB[0]); 
+      analogWrite(greenPin,RGB[1]);
+      analogWrite(bluePin,RGB[2]);
+    }
+    else{
+      digitalWrite(redPin,LOW);
+      digitalWrite(greenPin,LOW);
+      digitalWrite(bluePin,LOW);
+    }
+    for(int i=0;i<3;i++){
+      if(RGB[i]<1){
+        delay(100);
+      }
+      if(RGB[i]<5){
+        delay(50);
+      }
+      if(RGB[i]<10){
+        delay(10);
+      }
+      if(RGB[i]<100){
+        delay(5);
+      }
+    }
+    delay(1);
+
+    // Setting red filtered photodiodes to be read
+  digitalWrite(S2,LOW);
+  digitalWrite(S3,LOW);
+  // Reading the output frequency
+  frequencyR = pulseIn(sensorOut, LOW);
+  //Remaping the value of the frequency to the RGB Model of 0 to 255
+  frequencyR = map(frequencyR, 0,800,0,255);
+  delay(100);
+  // Setting Green filtered photodiodes to be read
+  digitalWrite(S2,HIGH);
+  digitalWrite(S3,HIGH);
+  // Reading the output frequency
+  frequencyG = pulseIn(sensorOut, LOW);
+  //Remaping the value of the frequency to the RGB Model of 0 to 255
+  frequencyG = map(frequencyG, 0,1500,0,255);
+  delay(100);
+  // Setting Blue filtered photodiodes to be read
+  digitalWrite(S2,LOW);
+  digitalWrite(S3,HIGH);
+  // Reading the output frequency
+  frequencyB = pulseIn(sensorOut, LOW);
+  //Remaping the value of the frequency to the RGB Model of 0 to 255
+  frequencyB = map(frequencyB, 0,1700,0,255);
+  delay(100);
+
+//  Serial.println("frequencyR = ");
+//  Serial.println(frequencyR);
+//  Serial.println("frequencyG = ");
+//  Serial.println(frequencyG);
+//  Serial.println("frequencyB = ");
+//  Serial.println(frequencyB);
+
+  if(isRed()) {
+    Serial.println("this is RED color");
+    analogWrite(redLed,255);
+    analogWrite(greenLed,0);
+    analogWrite(blueLed,0);
+  }
+
+ if(isGreen()) {
+    Serial.println("this is GREEN color");
+    analogWrite(redLed,0);
+    analogWrite(greenLed,255);
+    analogWrite(blueLed,0);
+  }
+
+  if(isBlue())
+  {
+    Serial.println("this is BLUE color");
+    analogWrite(redLed,0);
+    analogWrite(greenLed,0);
+    analogWrite(blueLed,255);
+    }
+
+   if(isYellow())
+  {
+    Serial.println("this is YELLOW color");
+    analogWrite(redLed,255);
+    analogWrite(greenLed,224);
+    analogWrite(blueLed,0);
+    }
+  } 
+}
+
+//bool isYellow() {
+//  Serial.println("start of isYellow function");
+  
+
+//  delay(10000);
+
+ bool isRed() {
+//  Serial.println("start of isRed function"); 
+  if((frequencyR<28 && frequencyR>18) && (frequencyG<40 && frequencyG>31) && (frequencyB<28 && frequencyB>19))
+  {
+   return true;
+  }
+  else
+  {
+   return false; 
+    }
+}
+
+bool isGreen() {
+//  Serial.println("start of isGreen function");
+  if((frequencyR<31 && frequencyR>20) && (frequencyG<13 && frequencyG>5) && (frequencyB<16 && frequencyB>8))
+  {
+   return true;
+ }
+  else
+  {
+   return false; 
+    } 
+}
+
+bool isBlue() {
+//  Serial.println("start of isBlue function");
+  if((frequencyR<81 && frequencyR>66) && (frequencyG<25 && frequencyG>15) && (frequencyB<13 && frequencyB>4))
+  {
+   return true;
+  }
+  else
+  {
+   return false; 
+    } 
+}
+
+bool isYellow() {
+//  Serial.println("start of isYellow function");
+  if((frequencyR<16 && frequencyR>7) && (frequencyG<13 && frequencyG>5) && (frequencyB<18 && frequencyB>8))
+  {
+   return true;
+  }
+  else
+  {
+   return false; 
+    } 
+}
